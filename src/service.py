@@ -4,10 +4,22 @@ from openai import OpenAI
 from src.config import settings
 from src.models import JDGenerateRequest, JDGenerateResponse
 from src.prompts import build_prompts, get_salary_display
+from src.security import security_validator
 
 logger = logging.getLogger(__name__)
 
 def generate_job_descriptions(request: JDGenerateRequest) -> JDGenerateResponse:
+    # Security validation
+    if settings.ENABLE_SECURITY_VALIDATION:
+        is_valid, error_message, violations = security_validator.validate_request(
+            job_title=request.job_title,
+            rough_idea=request.rough_idea or "",
+            tone=request.tone or "",
+            location=request.location or ""
+        )
+        if not is_valid:
+            raise ValueError(error_message)
+    
     formats_output: Dict[str, str] = {}
     requested_formats = request.format_list
 
@@ -41,7 +53,16 @@ def _generate_single_format(request: JDGenerateRequest, target_format: str) -> s
             ],
             temperature=0.7,
         )
-        return response.choices[0].message.content
+        output = response.choices[0].message.content
+        
+        # Output validation for information leakage
+        if settings.ENABLE_SECURITY_VALIDATION:
+            is_valid, error_message = security_validator.validate_output(output)
+            if not is_valid:
+                logger.error(f"Output validation failed: {error_message}")
+                return f"[Security Filter Applied: {error_message}]"
+        
+        return output
     except Exception as e:
         logger.error(f"Error calling LLM API for format '{target_format}': {e}")
         return f"[Error connecting to DeepSeek API: {str(e)}]\n\n" + mock_generate_output(request, target_format)
