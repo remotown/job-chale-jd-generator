@@ -13,4 +13,10 @@ class Settings:
     DEEPSEEK_BASE_URL: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
     DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
+    # Security Configs
+    RATE_LIMIT_REQUESTS: int = int(os.getenv("RATE_LIMIT_REQUESTS", "10"))
+    RATE_LIMIT_PERIOD: int = int(os.getenv("RATE_LIMIT_PERIOD", "60"))  # seconds
+    ENABLE_SECURITY_VALIDATION: bool = os.getenv("ENABLE_SECURITY_VALIDATION", "true").lower() == "true"
+    SECURITY_LOG_LEVEL: str = os.getenv("SECURITY_LOG_LEVEL", "WARNING")
+
 settings = Settings()
