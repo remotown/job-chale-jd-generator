@@ -1,6 +1,8 @@
-from fastapi import FastAPI, status, HTTPException, Request
+from fastapi import FastAPI, status, HTTPException, Request, Depends
+from typing import Annotated
 from collections import defaultdict
 import time
+from src.auth import User, get_current_user
 from src.config import settings
 from src.models import JDGenerateRequest, JDGenerateResponse
 from src.service import generate_job_descriptions
@@ -31,7 +33,10 @@ rate_limiter = RateLimiter(settings.RATE_LIMIT_REQUESTS, settings.RATE_LIMIT_PER
 app = FastAPI(
     title="Job Chale JD Generator",
     description="Backend service for generating Job Chale Job Descriptions with unique field requirements.",
-    version="0.1.0"
+    version="0.1.0",
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None
 )
 
 @app.get("/")
@@ -46,7 +51,11 @@ def health_check():
     return {"status": "ok"}
 
 @app.post("/api/generate-jd", response_model=JDGenerateResponse, status_code=status.HTTP_200_OK)
-def generate_jd(http_request: Request, request: JDGenerateRequest):
+def generate_jd(
+    http_request: Request,
+    request: JDGenerateRequest,
+    user: Annotated[User, Depends(get_current_user)],
+):
     client_id = http_request.client.host if http_request.client else "unknown"
     
     if not rate_limiter.is_allowed(client_id):

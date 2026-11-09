@@ -2,7 +2,7 @@ from typing import Optional, Union, List, Dict
 from pydantic import BaseModel, Field
 
 class JDGenerateRequest(BaseModel):
-    job_title: str = Field(..., description="Job Title for the role")
+    job_title: str = Field(..., min_length=1, description="Job Title for the role")
     rough_idea: Optional[str] = Field(default="", description="Rough outline or notes for the role")
     employment_type: Optional[str] = Field(default="", description="Full-time, Part-time, Contract, etc.")
     experience_level: Optional[str] = Field(default="", description="Entry level, Mid level, Senior, Executive, etc.")
@@ -16,6 +16,8 @@ class JDGenerateRequest(BaseModel):
         default=["general"], 
         description="Target platform format or list of formats: general, linkedin, whatsapp, facebook"
     )
+    about_company: Optional[str] = Field(default="", description="About the company section")
+    perks_and_benefits: Optional[str] = Field(default="", description="Perks and benefits offered")
 
     @property
     def format_list(self) -> List[str]:

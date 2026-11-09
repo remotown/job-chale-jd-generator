@@ -33,12 +33,14 @@ Write a narrative role overview for this position.
 """
 
 GENERAL_JD_PROMPT = """Write a clean, professional job description with ALL CAPS section headers:
-ROLE OVERVIEW | KEY RESPONSIBILITIES | REQUIREMENTS | WHAT WE OFFER
+ROLE OVERVIEW | KEY RESPONSIBILITIES | REQUIREMENTS | ABOUT THE COMPANY | PERKS AND BENEFITS
 
 Structure rules:
   Use bullet points for KEY RESPONSIBILITIES and REQUIREMENTS.
   REQUIREMENTS: factual only — experience level, must-have technical skills, prerequisites.
     Do NOT include attitude, personality, or culture-fit language in REQUIREMENTS.
+  ABOUT THE COMPANY: Include ONLY if company information is provided. Omit section entirely if not provided.
+  PERKS AND BENEFITS: Include ONLY if perks/benefits are provided. Omit section entirely if not provided.
 
 {role_overview_instruction}
 
@@ -68,13 +70,20 @@ WHAT WE ARE LOOKING FOR
 - [Requirement 2]
 - [Continue with requirements based on inputs]
 
+ABOUT THE COMPANY
+[Company information - include ONLY if provided, omit section if not]
+
 WHAT YOU WILL GAIN
 - [Benefit / Salary / Details if provided]
+
+PERKS AND BENEFITS
+[Perks and benefits - include ONLY if provided, omit section if not]
 
 Rules:
   Use bullet points (-) for all lists
   Keep section headers in ALL CAPS as shown
   Apply brand voice to the descriptive content while maintaining this structure
+  ABOUT THE COMPANY and PERKS AND BENEFITS sections: Include ONLY if information is provided. Omit entirely if not provided.
 
 {role_overview_instruction}
 
@@ -130,6 +139,12 @@ What We're Looking For:
 🔹 [Requirement 2]
 🔹 [Continue with requirements]
 
+About Us 🏢
+[Company information - include ONLY if provided, omit section if not]
+
+Perks & Benefits 🎁
+[Perks and benefits - include ONLY if provided, omit section if not]
+
 Tag someone who'd be perfect for this! 👇
 
 Rules:
@@ -138,6 +153,7 @@ Rules:
   Short paragraphs: 2 to 3 sentences maximum per block
   End with engagement CTA (tag someone) — match brand voice
   Apply brand voice to the descriptive content while maintaining this structure
+  About Us and Perks & Benefits sections: Include ONLY if information is provided. Omit entirely if not provided.
 
 {role_overview_instruction}
 
@@ -184,6 +200,13 @@ def build_base_context(request: JDGenerateRequest) -> str:
 
     if request.rough_idea:
         parts.append(f"Role Outline / Rough Details: {request.rough_idea}")
+    
+    if request.about_company:
+        parts.append(f"About the Company: {request.about_company}")
+    
+    if request.perks_and_benefits:
+        parts.append(f"Perks and Benefits: {request.perks_and_benefits}")
+    
     return "\n".join(parts)
 
 

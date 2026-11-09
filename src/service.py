@@ -15,7 +15,9 @@ def generate_job_descriptions(request: JDGenerateRequest) -> JDGenerateResponse:
             job_title=request.job_title,
             rough_idea=request.rough_idea or "",
             tone=request.tone or "",
-            location=request.location or ""
+            location=request.location or "",
+            about_company=request.about_company or "",
+            perks_and_benefits=request.perks_and_benefits or ""
         )
         if not is_valid:
             raise ValueError(error_message)
@@ -87,6 +89,8 @@ def mock_generate_output(request: JDGenerateRequest, target_format: str) -> str:
         if salary_display:
             lines.append(f"💰 Salary\n- {salary_display}")
         lines.append(f"📍 Location\n- {request.location or 'Not specified'}")
+        if request.perks_and_benefits:
+            lines.append(f"🎁 Perks & Benefits\n- {request.perks_and_benefits}")
         return "\n\n".join(lines)
 
     output_lines = [
@@ -103,5 +107,9 @@ def mock_generate_output(request: JDGenerateRequest, target_format: str) -> str:
         output_lines.append(f"Salary: {salary_display}")
     if request.rough_idea:
         output_lines.append(f"Overview: {request.rough_idea}")
+    if request.about_company:
+        output_lines.append(f"About the Company: {request.about_company}")
+    if request.perks_and_benefits:
+        output_lines.append(f"Perks and Benefits: {request.perks_and_benefits}")
 
     return "\n".join(output_lines)
