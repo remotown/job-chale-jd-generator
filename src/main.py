@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, HTTPException, Request, Depends
+from fastapi import FastAPI, status, HTTPException, Depends
 from typing import Annotated
 from collections import defaultdict
 import time
@@ -52,13 +52,12 @@ def health_check():
 
 @app.post("/api/generate-jd", response_model=JDGenerateResponse, status_code=status.HTTP_200_OK)
 def generate_jd(
-    http_request: Request,
     request: JDGenerateRequest,
     user: Annotated[User, Depends(get_current_user)],
 ):
-    client_id = http_request.client.host if http_request.client else "unknown"
-    
-    if not rate_limiter.is_allowed(client_id):
+    # Limit per signed-in user, not per IP: every request arrives from the Job Chale
+    # server, so an IP limit would be one bucket shared by all employers.
+    if not rate_limiter.is_allowed(user.id):
         raise HTTPException(
             status_code=429,
             detail=f"Rate limit exceeded. Maximum {settings.RATE_LIMIT_REQUESTS} requests per {settings.RATE_LIMIT_PERIOD} seconds."
