@@ -7,7 +7,8 @@ class Settings:
     APP_ENV: str = os.getenv("APP_ENV", "development")
     PORT: int = int(os.getenv("PORT", 8000))
     API_KEY: str = os.getenv("API_KEY", "")
-    JWT_TOKEN_SECRET: str = os.getenv("JWT_TOKEN_SECRET", "")
+    # Supabase project that issues Job Chale's access tokens, e.g. https://<ref>.supabase.co
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
 
     # DeepSeek / OpenAI Configs
     DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")

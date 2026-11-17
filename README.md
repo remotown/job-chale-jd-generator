@@ -39,6 +39,11 @@ Copy `.env.example` to `.env` and set your variables:
 cp .env.example .env
 ```
 
+`SUPABASE_URL` is required. `POST /api/generate-jd` needs `Authorization: Bearer <Supabase access token>`:
+the Job Chale app forwards the signed-in employer's token, and this service verifies it against the
+project's public keys (`<SUPABASE_URL>/auth/v1/.well-known/jwks.json`, ES256). No shared secret is
+involved. Rate limits are counted per user (the token's `sub`).
+
 ### 4. Running the API Server
 Start the local FastAPI dev server with Uvicorn:
 

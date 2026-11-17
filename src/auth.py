@@ -11,19 +11,24 @@ from src.config import settings
 @dataclass
 class User:
     id: str
-    is_platform_admin: bool
     email: str | None
     role: str | None
-    partner_id: str | None
 
 
-secret = settings.JWT_TOKEN_SECRET
-if not secret:
-    raise RuntimeError("JWT_TOKEN_SECRET environment variable is required")
+supabase_url = settings.SUPABASE_URL.rstrip("/")
+if not supabase_url:
+    raise RuntimeError("SUPABASE_URL environment variable is required")
 
-# Matches the existing backend for an ASCII-only SECRET.
-# Fail at startup if the secret requires special encoding handling.
-signing_key = secret.encode("ascii")
+# Job Chale's access tokens are issued by Supabase Auth and signed with the project's
+# asymmetric signing key. We verify them with the PUBLIC keys Supabase publishes, so this
+# service holds no secret that could mint tokens. PyJWKClient caches the keys and refetches
+# when a token names a key it hasn't seen (i.e. after a rotation in the dashboard).
+issuer = f"{supabase_url}/auth/v1"
+jwks_client = jwt.PyJWKClient(f"{issuer}/.well-known/jwks.json", cache_keys=True)
+
+# Asymmetric only. Never accept HS256 here: with a public key in hand, allowing a symmetric
+# algorithm would let anyone sign a token using that public key as the "secret".
+ALGORITHMS = ["ES256", "RS256"]
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -56,35 +61,32 @@ def get_current_user(
     if credentials is None:
         raise unauthorized()
 
+    token = credentials.credentials
+    try:
+        signing_key = jwks_client.get_signing_key_from_jwt(token).key
+    except jwt.PyJWKClientConnectionError:
+        # Supabase's key endpoint is unreachable: our outage, not a bad token.
+        raise HTTPException(status_code=503, detail="Token verification is unavailable.") from None
+    except (jwt.PyJWKClientError, jwt.InvalidTokenError):
+        # Unknown key id, or a token too malformed to name a key.
+        raise unauthorized() from None
+
     try:
         claims = jwt.decode(
-            credentials.credentials,
+            token,
             signing_key,
-            algorithms=["HS256"],
+            algorithms=ALGORITHMS,
+            audience="authenticated",
+            issuer=issuer,
             leeway=30,
-            options={
-                "require": ["exp"],
-                "verify_signature": True,
-                "verify_exp": True,
-                "verify_nbf": True,
-                "verify_iss": False,
-                "verify_aud": False,
-                "verify_iat": False,
-            },
+            options={"require": ["exp", "sub", "aud", "iss"]},
         )
     except jwt.ExpiredSignatureError:
         raise unauthorized(expired=True) from None
     except jwt.InvalidTokenError:
         raise unauthorized() from None
 
-    user_id = claims.get("nameid")
-    if not user_id:
-        raise unauthorized()
-
-    return User(
-        user_id,
-        email=claims.get("email"),
-        role=claims.get("role"),
-        is_platform_admin=claims.get("is_platform_admin") == "true",
-        partner_id=claims.get("partner_id"),
-    )
+    # `role` is Supabase's database role ("authenticated"), not the Job Chale role. The
+    # employer check happens in the Job Chale app before it calls us; user_metadata is
+    # user-editable and must never be trusted for that.
+    return User(id=claims["sub"], email=claims.get("email"), role=claims.get("role"))
